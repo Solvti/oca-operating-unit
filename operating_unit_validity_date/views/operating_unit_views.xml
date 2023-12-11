@@ -4,10 +4,12 @@
         <field name="model">operating.unit</field>
         <field name="inherit_id" ref="operating_unit.view_operating_unit_form" />
         <field name="arch" type="xml">
-            <field name="company_id" position="after">
-                <field name="valid_from" />
-                <field name="valid_until" />
-            </field>
+            <form position="inside">
+                <group name="validity_date" string="Validity Date">
+                    <field name="valid_from" />
+                    <field name="valid_until" />
+                </group>
+            </form>
         </field>
     </record>
 </odoo>
