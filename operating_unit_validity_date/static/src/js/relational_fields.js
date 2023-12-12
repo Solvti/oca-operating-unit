@@ -81,14 +81,22 @@ odoo.define("operating_unit_validity_date.relational_fields", function(require) 
                     model: "operating.unit",
                     method: "read",
                     args: [ids, ["validity_state"]],
-                }).then(function(result) {
-                    result.forEach(data => {
-                        updateSpan(
-                            self.operatingUnitValidityWarnings[data.id],
-                            data.validity_state
-                        );
+                })
+                    .then(function(result) {
+                        result.forEach(data => {
+                            updateSpan(
+                                self.operatingUnitValidityWarnings[data.id],
+                                data.validity_state
+                            );
+                        });
+                    })
+                    .catch(error => {
+                        // Error may be caused by e.g. no read access to the object
+                        // In this case we just don't display the validity info
+                        if (error.event) {
+                            error.event.preventDefault();
+                        }
                     });
-                });
             }
         },
     });
@@ -125,14 +133,22 @@ odoo.define("operating_unit_validity_date.relational_fields", function(require) 
                     model: "operating.unit",
                     method: "read",
                     args: [id, ["validity_state"]],
-                }).then(function(result) {
-                    if (result[0]) {
-                        updateSpan(
-                            self.$operatingUnitValidityWarning,
-                            result[0].validity_state
-                        );
-                    }
-                });
+                })
+                    .then(function(result) {
+                        if (result[0]) {
+                            updateSpan(
+                                self.$operatingUnitValidityWarning,
+                                result[0].validity_state
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        // Error may be caused by e.g. no read access to the object
+                        // In this case we just don't display the validity info
+                        if (error.event) {
+                            error.event.preventDefault();
+                        }
+                    });
             }
         },
         _onFieldChanged: function(event) {
