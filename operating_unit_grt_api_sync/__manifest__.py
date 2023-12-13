@@ -8,12 +8,9 @@
     "license": "LGPL-3",
     "depends": ["operating_unit", "operating_unit_validity_date"],
     "data": [
+        "data/ir_config_parameter.xml",
         "data/ir_cron.xml",
-        "security/ir.model.access.csv",
-        "views/operating_unit_views.xml",
+        "views/res_company_views.xml",
     ],
-    "demo": [
-        "demo/operating_unit_demo.xml",
-        "demo/operating_unit_company_mapping_demo.xml",
-    ],
+    "demo": ["demo/operating_unit_demo.xml", "demo/res_company_demo.xml"],
 }

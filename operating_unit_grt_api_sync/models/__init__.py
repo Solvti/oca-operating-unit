@@ -1,2 +1,2 @@
-from . import operating_unit_company_mapping
+from . import res_company
 from . import operating_unit
