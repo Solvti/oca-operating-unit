@@ -208,7 +208,7 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
     def test_01_create_operating_unit(self):
         """Test that the operating units data received from the API created MIDs."""
         api_data = self.sample_response_data
-        self.env["operating.unit"]._process_grt_branch_data(api_data)
+        self.env["operating.unit"]._process_grt_operating_unit_data(api_data)
 
         ou_1 = self.OperatingUnit.search(
             [("code", "=", self.mid_to_create_1_data["l5_branch_management_id"])]
@@ -312,7 +312,9 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
 
     def test_02_update_operating_unit(self):
         """Test that the operating units data received from the API updates existing MIDs."""
-        self.env["operating.unit"]._process_grt_branch_data([self.mid_to_update_1_data])
+        self.env["operating.unit"]._process_grt_operating_unit_data(
+            [self.mid_to_update_1_data]
+        )
 
         self.assertEqual(
             datetime.strftime(self.ou_to_update.valid_from, "%Y-%m-%d"),
@@ -327,7 +329,9 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
 
     def test_03_mark_mid_as_not_synced_with_api(self):
         """Test that the MID is flagged as 'not synced with GRT API' if no related data for it is present in the API response."""
-        self.env["operating.unit"]._process_grt_branch_data(self.sample_response_data)
+        self.env["operating.unit"]._process_grt_operating_unit_data(
+            self.sample_response_data
+        )
 
         self.assertEqual(
             self.ou_not_present_in_api.synced_with_grt,
