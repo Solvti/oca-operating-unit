@@ -175,7 +175,7 @@ class OperatingUnit(models.Model):
             [("grt_code_prefixes", "!=", False)]
         )
         for company in compatible_companies:
-            prefixes = company.grt_code_prefixes.split(",")
+            prefixes = company.grt_code_prefixes.replace(" ", "").split(",")
             ou_code_company_mapping.update(
                 {prefix.strip(): company.id for prefix in prefixes}
             )
