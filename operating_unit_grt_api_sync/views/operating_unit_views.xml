@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_operating_unit_search" model="ir.ui.view">
+        <field name="name">operating.unit.search</field>
+        <field name="model">operating.unit</field>
+        <field name="inherit_id" ref="operating_unit.view_operating_unit_search" />
+        <field name="arch" type="xml">
+            <field name="code" position="after">
+                <filter
+                    name="synced_grt"
+                    string="Synced"
+                    domain="[('synced_with_grt', '=', True)]"
+                />
+            </field>
+        </field>
+    </record>
+
+</odoo>
