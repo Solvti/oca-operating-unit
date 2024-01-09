@@ -6,4 +6,5 @@
             name="value"
         >https://grt-api.azurewebsites.net/v1/grt/management_ids/flat</field>
     </record>
+
 </odoo>

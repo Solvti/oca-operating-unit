@@ -22,8 +22,14 @@ class OperatingUnit(models.Model):
         from GRT API.
         """
         ConfigParameter = self.env["ir.config_parameter"]
-        api_url = ConfigParameter.sudo().get_param("operating_unit_grt_api_sync.grt_api_url", None)
-        api_key = os.environ.get("GRT_API_KEY", None) or ConfigParameter.sudo().get_param("operating_unit_grt_api_sync.grt_api_key", None)
+        api_url = ConfigParameter.sudo().get_param(
+            "operating_unit_grt_api_sync.grt_api_url", None
+        )
+        api_key = os.environ.get(
+            "GRT_API_KEY", None
+        ) or ConfigParameter.sudo().get_param(
+            "operating_unit_grt_api_sync.grt_api_key", None
+        )
         return api_url, api_key
 
     def _fetch_grt_operating_unit_data(self):
@@ -51,7 +57,7 @@ class OperatingUnit(models.Model):
 
     def _sync_operating_unit_data_with_grt_cron(self):
         """Main method used by scheduled action to sync data with GRT API."""
-        if data := self._fetch_grt_operating_unit_data():  # noqa: E231 E701
+        if data := self._fetch_grt_operating_unit_data():
             self._process_grt_operating_unit_data(data)
 
     def _get_ou_create_vals(self, code, data):
@@ -136,7 +142,7 @@ class OperatingUnit(models.Model):
                     "branch": branch_data.get("l5_branch", ""),
                     "country": country_name,
                     "country_id": country_mapping.get(country_name, False),
-                    "company_id": ou_code_company_mapping.get(ou_code[:3], False)
+                    "company_id": ou_code_company_mapping.get(ou_code[:3], False),
                 }
             except KeyError as e:
                 _logger.error(
@@ -203,26 +209,50 @@ class OperatingUnit(models.Model):
             for code, branch_data in branches_data.items():
                 existing_operating_unit_data = existing_operating_units_data.get(code)
                 if existing_operating_unit_data:
-                    vals = self._get_update_vals_operating_unit(branch_data, existing_operating_unit_data)
+                    vals = self._get_update_vals_operating_unit(
+                        branch_data, existing_operating_unit_data
+                    )
                     if vals:
                         vals["synced_with_grt"] = True
                         existing_operating_unit_data.get("object").write(vals)
-                        self._log_grt_api_changes(f"Updated operating unit for code = {code} with values: {vals}", "update")
+                        self._log_grt_api_changes(
+                            f"Updated operating unit for code = {code} with values: {vals}",
+                            "update",
+                        )
                 else:
                     vals = self._get_create_vals_operating_unit(code, branch_data)
                     create_vals_list.append(vals)
             if create_vals_list:
                 self.create(create_vals_list)
-                self._log_grt_api_changes(f"Created new operating units with values: {create_vals_list}", "create")
-                _logger.info(f"GRT API Sync: Successfully created [{len(create_vals_list)}] Operating Units.")
-
+                self._log_grt_api_changes(
+                    f"Created new operating units with values: {create_vals_list}",
+                    "create",
+                )
+                _logger.info(
+                    f"GRT API Sync: Successfully created [{len(create_vals_list)}] Operating Units."
+                )
 
     def _log_grt_api_changes(self, message, action_type):
-        """Log api changes to ir.logging table.""" 
+        """Log api changes to ir.logging table."""
+
         def log(message, action_type):
             with self.pool.cursor() as cr:
-                cr.execute("""
+                cr.execute(
+                    """
                     INSERT INTO ir_logging(create_date, create_uid, type, dbname, name, level, message, path, line, func)
                     VALUES (NOW() at time zone 'UTC', %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (self.env.uid, 'server', self._cr.dbname, __name__, "info", message, "sync", action_type, "Sync with GRT API"))
+                """,
+                    (
+                        self.env.uid,
+                        "server",
+                        self._cr.dbname,
+                        __name__,
+                        "info",
+                        message,
+                        "sync",
+                        action_type,
+                        "Sync with GRT API",
+                    ),
+                )
+
         log(message, action_type)
