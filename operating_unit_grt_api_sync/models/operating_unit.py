@@ -59,6 +59,7 @@ class OperatingUnit(models.Model):
         """Main method used by scheduled action to sync data with GRT API."""
         if data := self._fetch_grt_operating_unit_data():
             self._process_grt_operating_unit_data(data)
+            _logger.info("GRT API Sync: Finished processing data from GRT API.")
 
     def _get_ou_create_vals(self, code, data):
         """Returns dictionary with values used to create a new operating unit."""
@@ -106,6 +107,8 @@ class OperatingUnit(models.Model):
             vals["valid_from"] = new_data["valid_from"]
         if new_data.get("valid_until") != existing_data.get("valid_until"):
             vals["valid_until"] = new_data["valid_until"]
+        if not existing_data.get("synced_with_grt"):
+            vals["synced_with_grt"] = True
         return vals
 
     def _is_code_company(self, branch_data, ou_code_company_mapping):
@@ -192,6 +195,7 @@ class OperatingUnit(models.Model):
                 if ou.valid_until
                 else None,
                 "country": ou.partner_id.country_id.name,
+                "synced_with_grt": ou.synced_with_grt,
             }
             for ou in operating_units
         }
@@ -213,7 +217,6 @@ class OperatingUnit(models.Model):
                         branch_data, existing_operating_unit_data
                     )
                     if vals:
-                        vals["synced_with_grt"] = True
                         existing_operating_unit_data.get("object").write(vals)
                         self._log_grt_api_changes(
                             f"Updated operating unit for code = {code} with values: {vals}",
