@@ -2,9 +2,7 @@
 <odoo>
     <record id="grt_api_url" model="ir.config_parameter">
         <field name="key">operating_unit_grt_api_sync.grt_api_url</field>
-        <field
-            name="value"
-        >https://grt-api.azurewebsites.net/v1/grt/management_ids/flat</field>
+        <field name="value"></field>
     </record>
 
 </odoo>

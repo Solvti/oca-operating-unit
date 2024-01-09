@@ -13,5 +13,5 @@
         "views/res_company_views.xml",
         "views/operating_unit_views.xml",
     ],
-    "demo": ["demo/operating_unit_demo.xml", "demo/res_company_demo.xml"],
+    "demo": ["demo/res_company_demo.xml"],
 }
