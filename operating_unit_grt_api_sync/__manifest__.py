@@ -11,6 +11,7 @@
         "data/ir_config_parameter.xml",
         "data/ir_cron.xml",
         "views/res_company_views.xml",
+        "views/operating_unit_views.xml",
     ],
     "demo": ["demo/operating_unit_demo.xml", "demo/res_company_demo.xml"],
 }

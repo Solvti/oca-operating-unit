@@ -21,12 +21,10 @@ class OperatingUnit(models.Model):
         Returns GRT API url and API key that are necessary for fetching data
         from GRT API.
         """
-        return (
-            self.env["ir.config_parameter"]
-            .sudo()
-            .get_param("operating_unit_grt_api_sync.grt_api_url", None),
-            os.environ.get("GRT_API_KEY", None),
-        )
+        ConfigParameter = self.env["ir.config_parameter"]
+        api_url = ConfigParameter.sudo().get_param("operating_unit_grt_api_sync.grt_api_url", None)
+        api_key = os.environ.get("GRT_API_KEY", None) or ConfigParameter.sudo().get_param("operating_unit_grt_api_sync.grt_api_key", None)
+        return api_url, api_key
 
     def _fetch_grt_operating_unit_data(self):
         """Requests data from GRT API and returns it as a dictionary."""
@@ -51,119 +49,113 @@ class OperatingUnit(models.Model):
         except Exception as e:
             _logger.error(f"GRT API Sync: Request to GRT API failed with error {e}.")
 
-    def _sync_operating_unit_data_with_grt(self):
+    def _sync_operating_unit_data_with_grt_cron(self):
         """Main method used by scheduled action to sync data with GRT API."""
         if data := self._fetch_grt_operating_unit_data():  # noqa: E231 E701
             self._process_grt_operating_unit_data(data)
 
-    @staticmethod
-    def _prepare_branch_name(branch_name):
-        """Returns branch name with proper prefix."""
-        return branch_name if branch_name == "OU Office" else f"Branch {branch_name}"
-
-    def _prepare_ou_create_vals(self, code, data, ou_code_company_mapping):
+    def _get_ou_create_vals(self, code, data):
         """Returns dictionary with values used to create a new operating unit."""
-        branch_name = self._prepare_branch_name(data["branch"])
-        name = f"{code} - OU {data['operating_unit']}, {branch_name}"
-        company_id = ou_code_company_mapping[code[:3]]
         return {
-            "name": name,
             "code": code,
-            "company_id": company_id,
+            "name": data["name"],
+            "company_id": data["company_id"],
             "valid_from": data["valid_from"],
             "valid_until": data["valid_until"],
             "synced_with_grt": True,
         }
 
-    def _prepare_ou_partner_create_vals(self, data, country_mapping):
+    def _get_ou_partner_create_vals(self, data):
         """
         Returns dictionary with values used to create new partner used by
         operating unit.
         """
-        branch_name = self._prepare_branch_name(data["branch"])
-        country_id = country_mapping[data["country"]]
         return {
-            "name": f"OU {data['operating_unit']}, {branch_name}",
+            "name": data["name"],
             "city": data["branch"],
-            "country_id": country_id,
+            "country_id": data["country_id"],
         }
 
-    def _create_new_operating_unit(self, data, ou_code_company_mapping):
+    def _get_create_vals_operating_unit(self, code, new_data):
         """
-        Creates new operating units and related partners based on data received from
+        Creates new partner for operating unit and creates related partner based on data received from
         GRT API.
         """
-        vals = []
-        partner_vals = []
-        countries = self.env["res.country"].search([])
-        country_mapping = {country.name: country.id for country in countries}
-        for code, branch_data in data.items():
-            create_vals = self._prepare_ou_create_vals(
-                code, branch_data, ou_code_company_mapping
-            )
-            vals.append(create_vals)
-            partner_create_vals = self._prepare_ou_partner_create_vals(
-                branch_data, country_mapping
-            )
-            partner_vals.append(partner_create_vals)
-        partners = self.env["res.partner"].create(partner_vals)
-        vals_with_partner = []
-        for partner, data in zip(partners, vals):
-            data.update({"partner_id": partner.id})
-            vals_with_partner.append(data)
-        self.create(vals_with_partner)
+        create_vals = self._get_ou_create_vals(code, new_data)
+        partner_create_vals = self._get_ou_partner_create_vals(new_data)
+        partner = self.env["res.partner"].create(partner_create_vals)
+        create_vals["partner_id"] = partner.id
+        return create_vals
 
-    def _update_operating_unit(self, data):
-        """Updates OU validity dates and sets synced_with_grt to True if necessary."""
-        self.ensure_one()
+    def _get_update_vals_operating_unit(self, new_data, existing_data):
+        """
+        Checks if there are any difference between grt api & existing data.
+        Compares new data with existing data.
+        Returns: Dict of values to update on operating unit.
+        """
         vals = {}
-        if self.valid_from != data["valid_from"]:
-            vals["valid_from"] = data["valid_from"]
-        if self.valid_until != data["valid_until"]:
-            vals["valid_until"] = data["valid_until"]
-        if not self.synced_with_grt:
-            vals["synced_with_grt"] = True
-        if vals:
-            self.write(vals)
+        if new_data.get("name") != existing_data.get("name"):
+            vals["name"] = new_data["name"]
+        if new_data.get("valid_from") != existing_data.get("valid_from"):
+            vals["valid_from"] = new_data["valid_from"]
+        if new_data.get("valid_until") != existing_data.get("valid_until"):
+            vals["valid_until"] = new_data["valid_until"]
+        return vals
 
-    @staticmethod
-    def _filter_branches_data(data, ou_code_company_mapping):
-        """Filters data received from GRT API to only include branches (L5) data."""
-        return [
-            d
-            for d in data
-            if d["management_id"][:3] in ou_code_company_mapping
-            and d["management_id_level_number"] == 5
-        ]
+    def _is_code_company(self, branch_data, ou_code_company_mapping):
+        return branch_data.get("management_id", "")[:3] in ou_code_company_mapping
 
-    def _prepare_api_data(self, data, ou_code_company_mapping):
+    def _is_branch_level(self, branch_data):
+        """Check if branch is on the level 5 (branch)."""
+        return branch_data.get("management_id_level_number", 0) == 5
+
+    def _get_grt_api_branches(self, data):
         """
         Filters data received from GRT API to keep only branches (Level 5) data and
         checks if the required keys are present. If so, returns a dictionary with GRT
         code prefixes as keys and dictionaries with data as values.
         """
+        ou_code_company_mapping = self._get_ou_code_company_mapping()
+        countries = self.env["res.country"].search([])
+        country_mapping = {country.name: country.id for country in countries}
 
-        # Process the branches (Level 5) data only.
-        if branches_data := self._filter_branches_data(  # noqa: E231 E701
-            data, ou_code_company_mapping
-        ):
+        branches_data = {}
+        for branch_data in data:
+            if not self._is_branch_level(branch_data):
+                continue
+            if not self._is_code_company(branch_data, ou_code_company_mapping):
+                continue
             try:
-                api_data = {
-                    d["management_id"]: {
-                        "valid_from": d["operational_from"],
-                        "valid_until": d["operational_until"],
-                        "branch": d["l5_branch"],
-                        "operating_unit": d["l8_operating_unit"],
-                        "country": d["l10_operating_country"],
-                    }
-                    for d in branches_data
+                ou_code = branch_data["management_id"]
+                name = self._get_operating_unit_name(ou_code, branch_data)
+                country_name = branch_data.get("l10_operating_country", "")
+                branches_data[ou_code] = {
+                    "name": name,
+                    "valid_from": branch_data.get("operational_from", False),
+                    "valid_until": branch_data.get("operational_until", False),
+                    "branch": branch_data.get("l5_branch", ""),
+                    "country": country_name,
+                    "country_id": country_mapping.get(country_name, False),
+                    "company_id": ou_code_company_mapping.get(ou_code[:3], False)
                 }
-                return api_data
             except KeyError as e:
                 _logger.error(
                     f"GRT API Sync: Received data from GRT API is "
                     f"missing key: {e.args[0]}."
                 )
+        return branches_data
+
+    def _get_operating_unit_name(self, code, branch_data):
+        """
+        Get operating unit name. If it's not a office add Branch prefix to the branch name.
+        Concat OU name with branch name.
+        """
+        ou_name = f"{code} - OU {branch_data.get('l8_operating_unit', '')}"
+        if branch_data.get("is_office"):
+            branch_name = f", {branch_data.get('l5_branch', '')}"
+        else:
+            branch_name = f", Branch {branch_data.get('l5_branch', '')}"
+        return ou_name + branch_name
 
     def _get_ou_code_company_mapping(self):
         """
@@ -181,42 +173,56 @@ class OperatingUnit(models.Model):
             )
         return ou_code_company_mapping
 
+    def _get_existing_operating_unit_data(self):
+        operating_units = self.search([])
+        operating_units_data = {
+            ou.code: {
+                "object": ou,
+                "name": ou.name,
+                "valid_from": datetime.strftime(ou.valid_from, "%Y-%m-%d")
+                if ou.valid_from
+                else None,
+                "valid_until": datetime.strftime(ou.valid_until, "%Y-%m-%d")
+                if ou.valid_until
+                else None,
+                "country": ou.partner_id.country_id.name,
+            }
+            for ou in operating_units
+        }
+        return operating_units_data
+
     def _process_grt_operating_unit_data(self, data):
         """
         Processes data received from GRT API by comparing identically structured data
         received from GRT API with existing data. If the OU code is present locally,
         update the OU if necessary. Otherwise create a new OU.
         """
-        ou_code_company_mapping = self._get_ou_code_company_mapping()
+        if branches_data := self._get_grt_api_branches(data):
+            create_vals_list = []
+            existing_operating_units_data = self._get_existing_operating_unit_data()
+            for code, branch_data in branches_data.items():
+                existing_operating_unit_data = existing_operating_units_data.get(code)
+                if existing_operating_unit_data:
+                    vals = self._get_update_vals_operating_unit(branch_data, existing_operating_unit_data)
+                    if vals:
+                        vals["synced_with_grt"] = True
+                        existing_operating_unit_data.get("object").write(vals)
+                        self._log_grt_api_changes(f"Updated operating unit for code = {code} with values: {vals}", "update")
+                else:
+                    vals = self._get_create_vals_operating_unit(code, branch_data)
+                    create_vals_list.append(vals)
+            if create_vals_list:
+                self.create(create_vals_list)
+                self._log_grt_api_changes(f"Created new operating units with values: {create_vals_list}", "create")
+                _logger.info(f"GRT API Sync: Successfully created [{len(create_vals_list)}] Operating Units.")
 
-        if api_data := self._prepare_api_data(  # noqa: E231 E701
-            data, ou_code_company_mapping
-        ):
-            operating_units = self.search([])
-            operating_units_data = {
-                ou.code: {
-                    "valid_from": datetime.strftime(ou.valid_from, "%Y-%m-%d")
-                    if ou.valid_from
-                    else None,
-                    "valid_until": datetime.strftime(ou.valid_until, "%Y-%m-%d")
-                    if ou.valid_until
-                    else None,
-                    "country": ou.partner_id.country_id.name,
-                }
-                for ou in operating_units
-            }
 
-            if ou_create_data := {  # noqa: E231 E701
-                k: v for k, v in api_data.items() if k not in operating_units_data
-            }:
-                self._create_new_operating_unit(ou_create_data, ou_code_company_mapping)
-
-            if ou_update_data := {  # noqa: E231 E701
-                k: v for k, v in operating_units_data.items() if k in api_data
-            }:
-                for code, data in ou_update_data.items():
-                    if api_data[code] != data:
-                        operating_unit = operating_units.filtered(
-                            lambda b: b.code == code
-                        )
-                        operating_unit._update_operating_unit(api_data[code])
+    def _log_grt_api_changes(self, message, action_type):
+        """Log api changes to ir.logging table.""" 
+        def log(message, action_type):
+            with self.pool.cursor() as cr:
+                cr.execute("""
+                    INSERT INTO ir_logging(create_date, create_uid, type, dbname, name, level, message, path, line, func)
+                    VALUES (NOW() at time zone 'UTC', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (self.env.uid, 'server', self._cr.dbname, __name__, "info", message, "sync", action_type, "Sync with GRT API"))
+        log(message, action_type)
