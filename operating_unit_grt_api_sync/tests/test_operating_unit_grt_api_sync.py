@@ -16,12 +16,32 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         self.ou1 = self.env.ref("operating_unit.main_operating_unit")
         self.ou2 = self.env.ref("operating_unit.b2b_operating_unit")
         self.ou3 = self.env.ref("operating_unit.b2c_operating_unit")
+        self.operating_unit_DEM1301 = self.env["operating.unit"].create({
+            "name":"DEM1301",
+            "code": "DEM1301",
+            "partner_id": self.env.ref("base.main_partner").id
+        })
+        self.operating_unit_DEM1302 = self.env["operating.unit"].create({
+            "name":"DEM1302",
+            "code": "DEM1302",
+            "partner_id": self.env.ref("base.main_partner").id
+        })
+        self.operating_unit_DEM1401 = self.env["operating.unit"].create({
+            "name":"DEM1401",
+            "code": "DEM1401",
+            "partner_id": self.env.ref("base.main_partner").id
+        })
+        self.operating_unit_DEM1402 = self.env["operating.unit"].create({
+            "name":"DEM1402",
+            "code": "DEM1402",
+            "partner_id": self.env.ref("base.main_partner").id
+        })
         self.ou_to_update_valid_from = date_yesterday
         self.ou_to_update_valid_until = date_3_years_later
         self.ou_to_update = self.env["operating.unit"].create(
             {
                 "name": "Test OU",
-                "code": "PDE1204",
+                "code": "DEM1204",
                 "partner_id": self.env["res.partner"]
                 .create({"name": "Test Partner"})
                 .id,
@@ -65,7 +85,7 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
 
         # MID active in the past, to be created
         self.mid_to_create_1_data = {
-            "management_id": "PDE1101",
+            "management_id": "DEM1101",
             "simple_name": "Villingen-Schwenningen",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -78,16 +98,16 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Freiburg",
-            "l8_operating_unit_management_id": "PDE1100",
+            "l8_operating_unit_management_id": "DEM1100",
             "l5_branch": "Villingen-Schwenningen",
-            "l5_branch_management_id": "PDE1101",
+            "l5_branch_management_id": "DEM1101",
         }
 
         # MID active in the future, to be created
         self.mid_to_create_2_data = {
-            "management_id": "PDE1102",
+            "management_id": "DEM1102",
             "simple_name": "Villingen-Schwenningen",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -100,16 +120,16 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Freiburg",
-            "l8_operating_unit_management_id": "PDE1100",
+            "l8_operating_unit_management_id": "DEM1100",
             "l5_branch": "Villingen-Schwenningen",
-            "l5_branch_management_id": "PDE1102",
+            "l5_branch_management_id": "DEM1102",
         }
 
         # MID active today, to be created
         self.mid_to_create_3_data = {
-            "management_id": "PDE1201",
+            "management_id": "DEM1201",
             "simple_name": "Fulda",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -122,16 +142,16 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Fulda",
-            "l8_operating_unit_management_id": "PDE1200",
+            "l8_operating_unit_management_id": "DEM1200",
             "l5_branch": "Fulda",
-            "l5_branch_management_id": "PDE1201",
+            "l5_branch_management_id": "DEM1201",
         }
 
         # MID active since today, to be created
         self.mid_to_create_4_data = {
-            "management_id": "PDE1202",
+            "management_id": "DEM1202",
             "simple_name": "Fulda",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -144,16 +164,16 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Fulda",
-            "l8_operating_unit_management_id": "PDE1200",
+            "l8_operating_unit_management_id": "DEM1200",
             "l5_branch": "Fulda",
-            "l5_branch_management_id": "PDE1202",
+            "l5_branch_management_id": "DEM1202",
         }
 
         # MID without operational dates, to be created
         self.mid_to_create_5_data = {
-            "management_id": "PDE1203",
+            "management_id": "DEM1203",
             "simple_name": "Fulda",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -166,16 +186,16 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Fulda",
-            "l8_operating_unit_management_id": "PDE1200",
+            "l8_operating_unit_management_id": "DEM1200",
             "l5_branch": "Fulda",
-            "l5_branch_management_id": "PDE1203",
+            "l5_branch_management_id": "DEM1203",
         }
 
         # MID with updated operational dates, to be updated
         self.mid_to_update_1_data = {
-            "management_id": "PDE1204",
+            "management_id": "DEM1204",
             "simple_name": "Fulda",
             "management_id_level_number": 5,
             "management_id_level": "Branch",
@@ -188,11 +208,11 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             "l12_business_unit": "Prüfservice",
             "l12_business_unit_management_id": "MID1",
             "l10_operating_country": "Germany",
-            "l10_operating_country_management_id": "PDE0000",
+            "l10_operating_country_management_id": "DEM0000",
             "l8_operating_unit": "Fulda",
-            "l8_operating_unit_management_id": "PDE1200",
+            "l8_operating_unit_management_id": "DEM1200",
             "l5_branch": "Fulda",
-            "l5_branch_management_id": "PDE1204",
+            "l5_branch_management_id": "DEM1204",
         }
 
         self.sample_response_data = [
@@ -218,18 +238,17 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
             f"MID with code {self.mid_to_create_1_data['l5_branch_management_id']} should have been created.",
         )
         ou_1_name = f"{self.mid_to_create_1_data['l5_branch_management_id']} - OU {self.mid_to_create_1_data['l8_operating_unit']}, Branch {self.mid_to_create_1_data['l5_branch']}"
-        ou_1_partner_name = f"OU {self.mid_to_create_1_data['l8_operating_unit']}, Branch {self.mid_to_create_1_data['l5_branch']}"
         self.assertEqual(
             ou_1.name,
             ou_1_name,
             "Name of OU 1 should be of the following format: code - OU branch, OU Office",
         )
         ou_1_partner_created = self.env["res.partner"].search(
-            [("name", "=", ou_1_partner_name)]
+            [("name", "=", ou_1_name)]
         )
         self.assertTrue(
             ou_1_partner_created,
-            f"Partner with name {self.mid_to_create_1_data['simple_name']} should have been created.",
+            f"Partner with name {ou_1_name} should have been created.",
         )
         self.assertTrue(
             datetime.strftime(ou_1.valid_from, "%Y-%m-%d")
