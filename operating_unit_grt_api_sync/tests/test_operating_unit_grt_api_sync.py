@@ -16,26 +16,34 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         self.ou1 = self.env.ref("operating_unit.main_operating_unit")
         self.ou2 = self.env.ref("operating_unit.b2b_operating_unit")
         self.ou3 = self.env.ref("operating_unit.b2c_operating_unit")
-        self.operating_unit_DEM1301 = self.env["operating.unit"].create({
-            "name":"DEM1301",
-            "code": "DEM1301",
-            "partner_id": self.env.ref("base.main_partner").id
-        })
-        self.operating_unit_DEM1302 = self.env["operating.unit"].create({
-            "name":"DEM1302",
-            "code": "DEM1302",
-            "partner_id": self.env.ref("base.main_partner").id
-        })
-        self.operating_unit_DEM1401 = self.env["operating.unit"].create({
-            "name":"DEM1401",
-            "code": "DEM1401",
-            "partner_id": self.env.ref("base.main_partner").id
-        })
-        self.operating_unit_DEM1402 = self.env["operating.unit"].create({
-            "name":"DEM1402",
-            "code": "DEM1402",
-            "partner_id": self.env.ref("base.main_partner").id
-        })
+        self.operating_unit_DEM1301 = self.env["operating.unit"].create(
+            {
+                "name": "DEM1301",
+                "code": "DEM1301",
+                "partner_id": self.env.ref("base.main_partner").id,
+            }
+        )
+        self.operating_unit_DEM1302 = self.env["operating.unit"].create(
+            {
+                "name": "DEM1302",
+                "code": "DEM1302",
+                "partner_id": self.env.ref("base.main_partner").id,
+            }
+        )
+        self.operating_unit_DEM1401 = self.env["operating.unit"].create(
+            {
+                "name": "DEM1401",
+                "code": "DEM1401",
+                "partner_id": self.env.ref("base.main_partner").id,
+            }
+        )
+        self.operating_unit_DEM1402 = self.env["operating.unit"].create(
+            {
+                "name": "DEM1402",
+                "code": "DEM1402",
+                "partner_id": self.env.ref("base.main_partner").id,
+            }
+        )
         self.ou_to_update_valid_from = date_yesterday
         self.ou_to_update_valid_until = date_3_years_later
         self.ou_to_update = self.env["operating.unit"].create(
@@ -235,9 +243,12 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertTrue(
             ou_1,
-            f"MID with code {self.mid_to_create_1_data['l5_branch_management_id']} should have been created.",
+            f"MID with code {self.mid_to_create_1_data['l5_branch_management_id']}\
+should have been created.",
         )
-        ou_1_name = f"{self.mid_to_create_1_data['l5_branch_management_id']} - OU {self.mid_to_create_1_data['l8_operating_unit']}, Branch {self.mid_to_create_1_data['l5_branch']}"
+        ou_1_name = f"{self.mid_to_create_1_data['l5_branch_management_id']} - OU \
+{self.mid_to_create_1_data['l8_operating_unit']}, \
+Branch {self.mid_to_create_1_data['l5_branch']}"
         self.assertEqual(
             ou_1.name,
             ou_1_name,
@@ -274,7 +285,8 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertTrue(
             ou_2,
-            f"MID with code {self.mid_to_create_2_data['l5_branch_management_id']} should have been created.",
+            f"MID with code {self.mid_to_create_2_data['l5_branch_management_id']} \
+ should have been created.",
         )
         self.assertEqual(
             ou_2.validity_state,
@@ -287,7 +299,8 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertTrue(
             ou_3,
-            f"MID with code {self.mid_to_create_3_data['l5_branch_management_id']} should have been created.",
+            f"MID with code {self.mid_to_create_3_data['l5_branch_management_id']} \
+should have been created.",
         )
         self.assertEqual(
             ou_3.validity_state,
@@ -300,7 +313,8 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertTrue(
             ou_4,
-            f"MID with code {self.mid_to_create_4_data['l5_branch_management_id']} should have been created.",
+            f"MID with code {self.mid_to_create_4_data['l5_branch_management_id']} \
+should have been created.",
         )
         self.assertEqual(
             ou_4.validity_state,
@@ -313,7 +327,8 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertTrue(
             ou_5,
-            f"MID with code {self.mid_to_create_5_data['l5_branch_management_id']} should have been created.",
+            f"MID with code {self.mid_to_create_5_data['l5_branch_management_id']}\
+should have been created.",
         )
         self.assertEqual(
             ou_5.validity_state,
@@ -326,7 +341,8 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
         self.assertFalse(
             ou_to_skip,
-            f"MID with code {self.mid_to_skip_data['management_id']} should not have been created.",
+            f"MID with code {self.mid_to_skip_data['management_id']} \
+should not have been created.",
         )
 
     def test_02_update_operating_unit(self):
@@ -347,7 +363,10 @@ class TestOperatingUnitGrtApiSync(common.TransactionCase):
         )
 
     def test_03_mark_mid_as_not_synced_with_api(self):
-        """Test that the MID is flagged as 'not synced with GRT API' if no related data for it is present in the API response."""
+        """
+        Test that the MID is flagged as 'not synced with GRT API'
+        if no related data for it is present in the API response.
+        """
         self.env["operating.unit"]._process_grt_operating_unit_data(
             self.sample_response_data
         )
